@@ -9,7 +9,7 @@ __version__ = ' 0.0.1 '
 __license__ = ' GPLv3+ '
 __author__ = ' juancarlos '
 __email__ = ' juancarlospaco@gmail.com '
-__url__ = 'https://github.com/juancarlospaco'
+__url__ = 'https://github.com/juancarlospaco/octopussh#octopussh'
 __date__ = '2015/01/01'
 __docformat__ = 'html'
 
@@ -30,8 +30,13 @@ from PyQt5.QtWidgets import (QApplication, QLineEdit, QCheckBox, QGroupBox,
                              QDialogButtonBox, QCompleter)
 
 
-HELP = """<h3>SSH OctopuSSH:</h3><b>SSH from .sh Bash Scripts!</b><br>{} version
- {}, licence {}, by {}.""".format(__doc__, __version__, __license__, __author__)
+HELP = """<h3>OctopuSSH</h3><b>App for SSH !</b><br>Version {}, licence {}.<ul>
+<li>200 lines of Python 3 + Qt 5, single-file, No Dependencies.
+<li>Inspired by Dead <a href=http://kssh.sourceforge.net>KSSH</a> from KDE3 Qt3.
+<li>Generates Executable Bash scripts for Automated SSH.</ul>
+DEV: <a href=https://github.com/juancarlospaco>juancarlospaco</a><br>
+QA: <a href=https://github.com/rokarc>rokarc</a>
+""".format(__version__, __license__)
 
 
 ###############################################################################
