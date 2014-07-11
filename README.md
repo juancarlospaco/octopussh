@@ -18,7 +18,7 @@ wget -O - https://raw.githubusercontent.com/juancarlospaco/octopussh/master/octo
 # Install permanently on the system:
 
 ```
-sudo apt-get install sshpass python3-pyqt5 python3
+sudo apt-get install sshpass python3-pyqt5
 sudo wget -O /usr/bin/octopussh https://raw.githubusercontent.com/juancarlospaco/octopussh/master/octopussh
 sudo chmod +x /usr/bin/octopussh
 octopussh
