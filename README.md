@@ -1,7 +1,7 @@
 octopussh
 =========
 
-- Python 3 + Qt 5 App for modern Admins, single-file, No Dependencies, easy use.
+- 170 lines of Python 3 + Qt 5 App for modern Admins, single-file, No Dependencies, easy use.
 - Inspired by Dead KSSH from KDE3 times ( http://kssh.sourceforge.net/#screenshots ).
 - Generates Executable Bash scripts for Automated SSH so you dont need the App on other PCs.
 
@@ -18,7 +18,7 @@ wget -O - https://raw.githubusercontent.com/juancarlospaco/octopussh/master/octo
 # Install permanently on the system:
 
 ```
-sudo apt-get install sshpass python3-pyqt5 python3
+sudo apt-get install sshpass python3-pyqt5
 sudo wget -O /usr/bin/octopussh https://raw.githubusercontent.com/juancarlospaco/octopussh/master/octopussh
 sudo chmod +x /usr/bin/octopussh
 octopussh
