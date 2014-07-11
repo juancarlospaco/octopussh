@@ -1,7 +1,7 @@
 octopussh
 =========
 
-- Python 3 + Qt 5 App for modern Admins, single-file, No Dependencies, easy use.
+- 170 lines of Python 3 + Qt 5 App for modern Admins, single-file, No Dependencies, easy use.
 - Inspired by Dead KSSH from KDE3 times ( http://kssh.sourceforge.net/#screenshots ).
 - Generates Executable Bash scripts for Automated SSH so you dont need the App on other PCs.
 
