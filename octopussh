@@ -64,7 +64,7 @@ class MainWindow(QMainWindow):
         helpMenu.addAction("About Qt 5", lambda: QMessageBox.aboutQt(self))
         helpMenu.addAction("About Python 3",
                            lambda: open_new_tab('https://www.python.org'))
-        helpMenu.addAction("About this App",
+        helpMenu.addAction("About" + __doc__,
                            lambda: QMessageBox.about(self, __doc__, HELP))
         helpMenu.addSeparator()
         helpMenu.addAction("Keyboard Shortcut", lambda: QMessageBox.information(
