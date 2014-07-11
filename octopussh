@@ -144,11 +144,15 @@ class MainWindow(QMainWindow):
             "{}@{}".format(self.user.text(), self.host.text())))
         if bool(len(self.path.text())):
             script += ":{}".format(self.path.text())
-        file_path = QFileDialog.getSaveFileName(self, __doc__.capitalize(),
-                                                path.expanduser("~"), "*.sh")[0]
-        with open(file_path, "w") as file_to_write:
-            file_to_write.write("#!/usr/bin/bash \n" + script.strip())
-        chmod(file_path, 0o775)
+        file_path = QFileDialog.getSaveFileName(
+            self, __doc__.title() + " - Save SSH Script ! ",
+            path.join(path.expanduser("~"), "ssh_to_" +
+            str(self.host.text()).strip().lower().replace(".", "_") + ".sh"),
+            "Bash Script Executable for Linux .sh (*.sh)")[0]
+        if file_path:
+            with open(file_path, "w") as file_to_write:
+                file_to_write.write("#!/usr/bin/bash \n" + script.strip())
+            chmod(file_path, 0o775)
 
     def center(self):
         """Center the Window on the Current Screen,with Multi-Monitor support"""
