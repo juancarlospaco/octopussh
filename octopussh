@@ -151,7 +151,7 @@ class MainWindow(QMainWindow):
             "Bash Script Executable for Linux .sh (*.sh)")[0]
         if file_path:
             with open(file_path, "w") as file_to_write:
-                file_to_write.write("#!/usr/bin/bash \n" + script.strip())
+                file_to_write.write("#!/usr/bin/env bash \n" + script.strip())
             chmod(file_path, 0o775)
 
     def center(self):
