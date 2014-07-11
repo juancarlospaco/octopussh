@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+# PEP8:OK, LINT:OK, PY3:OK
+
+
+# metadata
+""" OctopuSSH """
+__version__ = ' 0.0.1 '
+__license__ = ' GPLv3+ '
+__author__ = ' juancarlos '
+__email__ = ' juancarlospaco@gmail.com '
+__url__ = 'https://github.com/juancarlospaco'
+__date__ = '2015/01/01'
+__docformat__ = 'html'
+
+
+# imports
+import sys
+from getopt import getopt
+from getpass import getuser
+from subprocess import call
+from webbrowser import open_new_tab
+from socket import gethostbyname, getfqdn
+from os import path, chmod
+
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import (QApplication, QLineEdit, QCheckBox, QGroupBox,
+                             QHBoxLayout, QLabel, QMainWindow, QMessageBox,
+                             QShortcut, QFileDialog, QVBoxLayout, QWidget,
+                             QDialogButtonBox, QCompleter)
+
+
+HELP = """<h3>SSH OctopuSSH:</h3><b>SSH from .sh Bash Scripts!</b><br>{} version
+ {}, licence {}, by {}.""".format(__doc__, __version__, __license__, __author__)
+
+
+###############################################################################
+
+
+class MainWindow(QMainWindow):
+    def __init__(self, parent=None):
+        super(MainWindow, self).__init__()
+        #self.statusBar().showMessage(__doc__.strip().capitalize())
+        self.setWindowTitle(__doc__.strip().capitalize())
+        self.setMinimumSize(700, 240)
+        self.setMaximumSize(800, 400)
+        self.resize(self.minimumSize())
+        self.setWindowIcon(QIcon.fromTheme("preferences-system"))
+        self.center()
+        QShortcut("Ctrl+q", self, activated=lambda: self.close())
+        self.menuBar().addMenu("&File").addAction("Exit", exit)
+        windowMenu = self.menuBar().addMenu("&Window")
+        windowMenu.addAction("Minimize", lambda: self.showMinimized())
+        windowMenu.addAction("Maximize", lambda: self.showMaximized())
+        windowMenu.addAction("Restore", lambda: self.showNormal())
+        windowMenu.addAction("Center", lambda: self.center())
+        windowMenu.addAction("To Mouse", lambda: self.move_to_mouse_position())
+        helpMenu = self.menuBar().addMenu("&Help")
+        helpMenu.addAction("About Qt 5", lambda: QMessageBox.aboutQt(self))
+        helpMenu.addAction("About Python 3",
+                           lambda: open_new_tab('https://www.python.org'))
+        helpMenu.addAction("About this App",
+                           lambda: QMessageBox.about(self, __doc__, HELP))
+        helpMenu.addSeparator()
+        helpMenu.addAction("Keyboard Shortcut", lambda: QMessageBox.information(
+            self, __doc__, "Quit = CTRL+Q"))
+        helpMenu.addAction("View Source Code",
+                           lambda: call('xdg-open ' + __file__, shell=True))
+        helpMenu.addAction("View GitHub Repo", lambda: open_new_tab(__url__))
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
+        self.setCentralWidget(container)
+        # widgets
+        group0, group1 = QGroupBox("SSH"), QGroupBox("Options")
+        container_layout.addWidget(group0)
+        container_layout.addWidget(group1)
+        # ssh info
+        self.user, self.pswd = QLineEdit(getuser().lower().strip()), QLineEdit()
+        self.host, self.path = QLineEdit(), QLineEdit()
+        self.user.setPlaceholderText("root")
+        self.pswd.setPlaceholderText("P@ssw0rD!")
+        self.host.setPlaceholderText(gethostbyname(getfqdn()))
+        self.path.setPlaceholderText(path.expanduser("~"))
+        self.user.setToolTip("Remote User to use for SSH connection")
+        self.pswd.setToolTip("Password for remote user (OPTIONAL)")
+        self.host.setToolTip("Remote SSH Server IP address or hostname")
+        self.path.setToolTip("Remote SSH Server full path folder (OPTIONAL)")
+        self.user.setCompleter(QCompleter(("root", getuser(), "guest")))
+        self.path.setCompleter(QCompleter(("/root", "/tmp", "/home", "/data")))
+        ssh_layout = QHBoxLayout(group0)
+        ssh_layout.addWidget(QLabel("<b>User"))
+        ssh_layout.addWidget(self.user)
+        ssh_layout.addWidget(QLabel("<b>Server"))
+        ssh_layout.addWidget(self.host)
+        ssh_layout.addWidget(QLabel("Password"))
+        ssh_layout.addWidget(self.pswd)
+        ssh_layout.addWidget(QLabel("Folder"))
+        ssh_layout.addWidget(self.path)
+        # options
+        self.chrt, self.ionice = QCheckBox("Low CPU"), QCheckBox("Low HDD")
+        self.verb, self.comprs = QCheckBox("Verbose"), QCheckBox("Compression")
+        self.ign, self.tun = QCheckBox("Ignore know_hosts"), QCheckBox("Tunnel")
+        self.chrt.setChecked(True)
+        self.ionice.setChecked(True)
+        self.verb.setChecked(True)
+        self.comprs.setChecked(True)
+        self.ign.setChecked(True)
+        self.tun.setChecked(True)
+        self.chrt.setToolTip("Use Low CPU speed priority")
+        self.ionice.setToolTip("Use Low HDD speed priority")
+        self.verb.setToolTip("Use Verbose messages, ideal for Troubleshooting")
+        self.comprs.setToolTip("Use Compression of all Data, ideal for Wifi")
+        self.tun.setToolTip("Use full forwarding SSH tunnel, with X and ports")
+        self.ign.setToolTip(
+            "Ignore checks of {}/.ssh/known_hosts".format(path.expanduser("~")))
+        opt_layout = QHBoxLayout(group1)
+        opt_layout.addWidget(self.chrt)
+        opt_layout.addWidget(self.ionice)
+        opt_layout.addWidget(self.verb)
+        opt_layout.addWidget(self.comprs)
+        opt_layout.addWidget(self.tun)
+        opt_layout.addWidget(self.ign)
+        self.bt = QDialogButtonBox(self)
+        self.bt.setStandardButtons(QDialogButtonBox.Ok | QDialogButtonBox.Close)
+        self.bt.rejected.connect(exit)
+        self.bt.accepted.connect(self.run)
+        container_layout.addWidget(self.bt)
+        self.host.setFocus()
+
+    def run(self):
+        """Run the main method and create bash script."""
+        if not len(self.user.text()) or not len(self.host.text()):
+            QMessageBox.warning(self, __doc__, "<b>ERROR: User or Server Empty")
+            return
+        conditional = bool(len(self.pswd.text()))
+        script = " ".join((
+            "ionice --ignore --class 3" if self.ionice.isChecked() else "",
+            "chrt --verbose --idle 0" if self.chrt.isChecked() else "",
+            "sshpass -p '{}'".format(self.pswd.text()) if conditional else "",
+            "ssh", "-vvv" if self.verb.isChecked() else "",
+            "-C" if self.comprs.isChecked() else "",
+            "-g -X" if self.tun.isChecked() else "",
+            "-o StrictHostKeychecking=no" if self.ign.isChecked() else "",
+            "{}@{}".format(self.user.text(), self.host.text())))
+        if bool(len(self.path.text())):
+            script += ":{}".format(self.path.text())
+        file_path = QFileDialog.getSaveFileName(self, __doc__.capitalize(),
+                                                path.expanduser("~"), "*.sh")[0]
+        with open(file_path, "w") as file_to_write:
+            file_to_write.write("#!/usr/bin/bash \n" + script.strip())
+        chmod(file_path, 0o775)
+
+    def center(self):
+        """Center the Window on the Current Screen,with Multi-Monitor support"""
+        window_geometry = self.frameGeometry()
+        mousepointer_position = QApplication.desktop().cursor().pos()
+        screen = QApplication.desktop().screenNumber(mousepointer_position)
+        centerPoint = QApplication.desktop().screenGeometry(screen).center()
+        window_geometry.moveCenter(centerPoint)
+        self.move(window_geometry.topLeft())
+
+    def move_to_mouse_position(self):
+        """Center the Window on the Current Mouse position"""
+        window_geometry = self.frameGeometry()
+        window_geometry.moveCenter(QApplication.desktop().cursor().pos())
+        self.move(window_geometry.topLeft())
+
+    def closeEvent(self, event):
+        ' Ask to Quit '
+        the_conditional_is_true = QMessageBox.question(
+            self, __doc__.title(), 'Quit ?.', QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No) == QMessageBox.Yes
+        event.accept() if the_conditional_is_true else event.ignore()
+
+
+###############################################################################
+
+
+def main():
+    ' Main Loop '
+    application = QApplication(sys.argv)
+    application.setStyle('Oxygen')
+    application.setApplicationName(__doc__.strip().lower())
+    application.setOrganizationName(__doc__.strip().lower())
+    application.setOrganizationDomain(__doc__.strip())
+    application.setWindowIcon(QIcon.fromTheme("preferences-system"))
+    try:
+        opts, args = getopt(sys.argv[1:], 'hv', ('version', 'help'))
+    except:
+        pass
+    for o, v in opts:
+        if o in ('-h', '--help'):
+            print(''' Usage:
+                  -h, --help        Show help informations and exit.
+                  -v, --version     Show version information and exit.''')
+            return sys.exit(1)
+        elif o in ('-v', '--version'):
+            print(__version__)
+            return sys.exit(1)
+    mainwindow = MainWindow()
+    mainwindow.show()
+    sys.exit(application.exec_())
+
+
+if __name__ in '__main__':
+    main()
