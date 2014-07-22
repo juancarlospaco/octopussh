@@ -29,3 +29,8 @@ octopussh
 - [Python 3.x](https://www.python.org "Python Homepage")
 - [PyQt 5.x](http://www.riverbankcomputing.co.uk/software/pyqt/download5 "PyQt5 Homepage")
 - SSHPass (Linux package)
+
+Donate:
+-------
+
+- If you want to Donate please [click here](http://www.icrc.org/eng/donations/index.jsp) or [click here](http://www.atheistalliance.org/support-aai/donate) or [click here](http://www.msf.org/donate) or [click here](http://richarddawkins.net/) or [click here](http://www.supportunicef.org/)
