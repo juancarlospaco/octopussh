@@ -23,7 +23,7 @@ from getpass import getuser
 from subprocess import call
 from webbrowser import open_new_tab
 from socket import gethostbyname, getfqdn
-from os import path, chmod, nice
+from os import path, chmod
 from urllib import request
 
 from PyQt5.QtGui import QIcon
@@ -224,7 +224,11 @@ class MainWindow(QMainWindow):
 
 def main():
     ' Main Loop '
-    nice(19)
+    try:
+        from os import nice  # isort:skip
+        nice(19)  # windows has no os.nice()
+    except Exception as error:
+        print(error)
     application = QApplication(sys.argv)
     application.setStyle('Oxygen')
     application.setApplicationName(__doc__.strip().lower())
