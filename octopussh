@@ -4,9 +4,10 @@
 
 
 # metadata
-""" OctopuSSH """
+"""OctopuSSH."""
+__package__ = "octopussh"
 __version__ = ' 0.0.1 '
-__license__ = ' GPLv3+ '
+__license__ = ' GPLv3+ LGPLv3+ '
 __author__ = ' juancarlos '
 __email__ = ' juancarlospaco@gmail.com '
 __url__ = 'https://github.com/juancarlospaco/octopussh#octopussh'
@@ -17,25 +18,27 @@ __source__ = ('https://raw.githubusercontent.com/juancarlospaco/'
 
 
 # imports
+import os
 import sys
+from ctypes import byref, cdll, create_string_buffer
 from getopt import getopt
 from getpass import getuser
+from socket import getfqdn, gethostbyname
 from subprocess import call
-from webbrowser import open_new_tab
-from socket import gethostbyname, getfqdn
-from os import path, chmod
 from urllib import request
+from webbrowser import open_new_tab
 
 from PyQt5.QtGui import QIcon
-from PyQt5.QtWidgets import (QApplication, QLineEdit, QCheckBox, QGroupBox,
-                             QHBoxLayout, QLabel, QMainWindow, QMessageBox,
-                             QShortcut, QFileDialog, QVBoxLayout, QWidget,
-                             QDialogButtonBox, QCompleter, QFontDialog)
+from PyQt5.QtWidgets import (QApplication, QCheckBox, QCompleter,
+                             QDialogButtonBox, QFileDialog, QFontDialog,
+                             QGroupBox, QHBoxLayout, QLabel, QLineEdit,
+                             QMainWindow, QMessageBox, QShortcut, QVBoxLayout,
+                             QWidget)
 
 
 HELP = """<h3>OctopuSSH</h3><b>App for SSH !</b><br>Version {}, licence {}.<ul>
 <li>200 lines of Python 3 + Qt 5, single-file, No Dependencies.
-<li>Inspired by Dead <a href=http://kssh.sourceforge.net>KSSH</a> from KDE3 Qt3.
+<li>Inspired by Dead <a href=http://kssh.sourceforge.net>KSSH</a> from KDE3 Qt3
 <li>Generates Executable Bash scripts for Automated SSH.</ul>
 DEV: <a href=https://github.com/juancarlospaco>juancarlospaco</a><br>
 QA: <a href=https://github.com/rokarc>rokarc</a>
@@ -46,9 +49,13 @@ QA: <a href=https://github.com/rokarc>rokarc</a>
 
 
 class MainWindow(QMainWindow):
+
+    """Class representing main window."""
+
     def __init__(self, parent=None):
+        """Init main class."""
         super(MainWindow, self).__init__()
-        #self.statusBar().showMessage(__doc__.strip().capitalize())
+        # self.statusBar().showMessage(__doc__.strip().capitalize())
         self.setWindowTitle(__doc__.strip().capitalize())
         self.setMinimumSize(700, 240)
         self.setMaximumSize(800, 400)
@@ -91,8 +98,9 @@ class MainWindow(QMainWindow):
         helpMenu.addAction("About" + __doc__,
                            lambda: QMessageBox.about(self, __doc__, HELP))
         helpMenu.addSeparator()
-        helpMenu.addAction("Keyboard Shortcut", lambda: QMessageBox.information(
-            self, __doc__, "Quit = CTRL+Q"))
+        helpMenu.addAction(
+            "Keyboard Shortcut",
+            lambda: QMessageBox.information(self, __doc__, "Quit = CTRL+Q"))
         helpMenu.addAction("View Source Code",
                            lambda: call('xdg-open ' + __file__, shell=True))
         helpMenu.addAction("View GitHub Repo", lambda: open_new_tab(__url__))
@@ -107,12 +115,12 @@ class MainWindow(QMainWindow):
         container_layout.addWidget(group0)
         container_layout.addWidget(group1)
         # ssh info
-        self.user, self.pswd = QLineEdit(getuser().lower().strip()), QLineEdit()
+        self.user, self.pswd = QLineEdit(getuser().lower()), QLineEdit()
         self.host, self.path = QLineEdit(), QLineEdit()
         self.user.setPlaceholderText("root")
         self.pswd.setPlaceholderText("P@ssw0rD!")
         self.host.setPlaceholderText(gethostbyname(getfqdn()))
-        self.path.setPlaceholderText(path.expanduser("~"))
+        self.path.setPlaceholderText(os.path.expanduser("~"))
         self.user.setToolTip("Remote User to use for SSH connection")
         self.pswd.setToolTip("Password for remote user (OPTIONAL)")
         self.host.setToolTip("Remote SSH Server IP address or hostname")
@@ -131,7 +139,8 @@ class MainWindow(QMainWindow):
         # options
         self.chrt, self.ionice = QCheckBox("Low CPU"), QCheckBox("Low HDD")
         self.verb, self.comprs = QCheckBox("Verbose"), QCheckBox("Compression")
-        self.ign, self.tun = QCheckBox("Ignore know_hosts"), QCheckBox("Tunnel")
+        self.ign = QCheckBox("Ignore know_hosts")
+        self.tun = QCheckBox("Tunnel")
         self.chrt.setChecked(True)
         self.ionice.setChecked(True)
         self.verb.setChecked(True)
@@ -143,8 +152,8 @@ class MainWindow(QMainWindow):
         self.verb.setToolTip("Use Verbose messages, ideal for Troubleshooting")
         self.comprs.setToolTip("Use Compression of all Data, ideal for Wifi")
         self.tun.setToolTip("Use full forwarding SSH tunnel, with X and ports")
-        self.ign.setToolTip(
-            "Ignore checks of {}/.ssh/known_hosts".format(path.expanduser("~")))
+        self.ign.setToolTip("Ignore check of {}/.ssh/known_hosts".format(
+            os.path.expanduser("~")))
         opt_layout = QHBoxLayout(group1)
         opt_layout.addWidget(self.chrt)
         opt_layout.addWidget(self.ionice)
@@ -153,7 +162,8 @@ class MainWindow(QMainWindow):
         opt_layout.addWidget(self.tun)
         opt_layout.addWidget(self.ign)
         self.bt = QDialogButtonBox(self)
-        self.bt.setStandardButtons(QDialogButtonBox.Ok | QDialogButtonBox.Close)
+        self.bt.setStandardButtons(QDialogButtonBox.Ok |
+                                   QDialogButtonBox.Close)
         self.bt.rejected.connect(exit)
         self.bt.accepted.connect(self.run)
         container_layout.addWidget(self.bt)
@@ -162,7 +172,7 @@ class MainWindow(QMainWindow):
     def run(self):
         """Run the main method and create bash script."""
         if not len(self.user.text()) or not len(self.host.text()):
-            QMessageBox.warning(self, __doc__, "<b>ERROR: User or Server Empty")
+            QMessageBox.warning(self, __doc__, "<b>ERROR:User or Server Empty")
             return
         conditional = bool(len(self.pswd.text()))
         script = " ".join((
@@ -177,14 +187,15 @@ class MainWindow(QMainWindow):
         if bool(len(self.path.text())):
             script += ":{}".format(self.path.text())
         file_path = QFileDialog.getSaveFileName(
-            self, __doc__.title() + " - Save SSH Script ! ",
-            path.join(path.expanduser("~"), "ssh_to_" +
-            str(self.host.text()).strip().lower().replace(".", "_") + ".sh"),
+            self, __doc__.title() + " - Save SSH Script ! ", os.path.join(
+                os.path.expanduser("~"), "ssh_to_" +
+                str(self.host.text()).strip().lower().replace(".", "_") +
+                ".sh"),
             "Bash Script Executable for Linux .sh (*.sh)")[0]
         if file_path:
             with open(file_path, "w") as file_to_write:
                 file_to_write.write("#!/usr/bin/env bash \n" + script.strip())
-            chmod(file_path, 0o775)
+            os.chmod(file_path, 0o775)
 
     def check_for_updates(self):
         """Method to check for updates from Git repo versus this version."""
@@ -197,7 +208,7 @@ class MainWindow(QMainWindow):
         return QMessageBox.information(self, __doc__.title(), "<b>" + m)
 
     def center(self):
-        """Center the Window on the Current Screen,with Multi-Monitor support"""
+        """Center Window on the Current Screen,with Multi-Monitor support."""
         window_geometry = self.frameGeometry()
         mousepointer_position = QApplication.desktop().cursor().pos()
         screen = QApplication.desktop().screenNumber(mousepointer_position)
@@ -206,13 +217,13 @@ class MainWindow(QMainWindow):
         self.move(window_geometry.topLeft())
 
     def move_to_mouse_position(self):
-        """Center the Window on the Current Mouse position"""
+        """Center the Window on the Current Mouse position."""
         window_geometry = self.frameGeometry()
         window_geometry.moveCenter(QApplication.desktop().cursor().pos())
         self.move(window_geometry.topLeft())
 
     def closeEvent(self, event):
-        ' Ask to Quit '
+        """Ask to Quit."""
         the_conditional_is_true = QMessageBox.question(
             self, __doc__.title(), 'Quit ?.', QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No) == QMessageBox.Yes
@@ -223,12 +234,16 @@ class MainWindow(QMainWindow):
 
 
 def main():
-    ' Main Loop '
+    """Main Loop."""
+    APPNAME = str(__package__ or __doc__)[:99].lower().strip().replace(" ", "")
     try:
-        from os import nice  # isort:skip
-        nice(19)  # windows has no os.nice()
-    except Exception as error:
-        print(error)
+        os.nice(19)  # smooth cpu priority
+        libc = cdll.LoadLibrary('libc.so.6')  # set process name
+        buff = create_string_buffer(len(APPNAME) + 1)
+        buff.value = bytes(APPNAME.encode("utf-8"))
+        libc.prctl(15, byref(buff), 0, 0, 0)
+    except Exception as reason:
+        print(reason)
     application = QApplication(sys.argv)
     application.setStyle('Oxygen')
     application.setApplicationName(__doc__.strip().lower())
