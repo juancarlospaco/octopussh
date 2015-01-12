@@ -18,25 +18,30 @@ __source__ = ('https://raw.githubusercontent.com/juancarlospaco/'
 
 
 # imports
+import logging as log
 import os
+import signal
 import sys
+import time
+from copy import copy
 from ctypes import byref, cdll, create_string_buffer
+from datetime import datetime
 from getopt import getopt
 from getpass import getuser
-import logging as log
-from copy import copy
 from socket import getfqdn, gethostbyname
 from subprocess import call
 from urllib import request
 from webbrowser import open_new_tab
-import signal
 
+from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QIcon
+from PyQt5.QtNetwork import (QNetworkAccessManager, QNetworkProxyFactory,
+                             QNetworkRequest)
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QCompleter,
                              QDialogButtonBox, QFileDialog, QFontDialog,
                              QGroupBox, QHBoxLayout, QLabel, QLineEdit,
-                             QMainWindow, QMessageBox, QShortcut, QVBoxLayout,
-                             QWidget)
+                             QMainWindow, QMessageBox, QProgressDialog,
+                             QShortcut, QVBoxLayout, QWidget)
 
 
 HELP = """<h3>OctopuSSH</h3><b>App for SSH !</b><br>Version {}, licence {}.<ul>
