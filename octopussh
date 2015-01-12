@@ -394,10 +394,10 @@ def main():
             print(''' Usage:
                   -h, --help        Show help informations and exit.
                   -v, --version     Show version information and exit.''')
-            return sys.exit(1)
+            return sys.exit(0)
         elif o in ('-v', '--version'):
             print(__version__)
-            return sys.exit(1)
+            return sys.exit(0)
     mainwindow = MainWindow()
     mainwindow.show()
     sys.exit(application.exec_())
