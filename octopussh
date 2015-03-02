@@ -6,12 +6,12 @@
 # metadata
 """OctopuSSH."""
 __package__ = "octopussh"
-__version__ = ' 0.0.1 '
+__version__ = "1.0.1"
+__description__ = __doc__
 __license__ = ' GPLv3+ LGPLv3+ '
 __author__ = ' juancarlos '
 __email__ = ' juancarlospaco@gmail.com '
 __url__ = 'https://github.com/juancarlospaco/octopussh#octopussh'
-__date__ = '2015/01/01'
 __docformat__ = 'html'
 __source__ = ('https://raw.githubusercontent.com/juancarlospaco/'
               'octopussh/master/octopussh')
@@ -380,7 +380,6 @@ def main():
         log.warning(reason)
     signal.signal(signal.SIGINT, signal.SIG_DFL)  # CTRL+C work to quit app
     application = QApplication(sys.argv)
-    application.setStyle('Oxygen')
     application.setApplicationName(__doc__.strip().lower())
     application.setOrganizationName(__doc__.strip().lower())
     application.setOrganizationDomain(__doc__.strip())
