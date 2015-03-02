@@ -53,7 +53,6 @@ setup(
     include_package_data=True,
     zip_safe=True,
 
-    entry_points = { 'console_scripts': ['octopussh = octopussh'] },
 
     classifiers=[
         'Development Status :: 5 - Production/Stable',
