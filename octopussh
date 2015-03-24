@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# PEP8:OK, LINT:OK, PY3:OK
 
 
 # metadata
 """OctopuSSH."""
 __package__ = "octopussh"
-__version__ = "1.0.2"
+__version__ = "1.0.3"
 __description__ = __doc__
 __license__ = ' GPLv3+ LGPLv3+ '
 __author__ = ' juancarlos '
@@ -32,6 +31,7 @@ from socket import getfqdn, gethostbyname
 from subprocess import call
 from urllib import request
 from webbrowser import open_new_tab
+import resource
 
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QIcon
@@ -236,6 +236,9 @@ class MainWindow(QMainWindow):
         self.path.setToolTip("Remote SSH Server full path folder (OPTIONAL)")
         self.user.setCompleter(QCompleter(("root", getuser(), "guest")))
         self.path.setCompleter(QCompleter(("/root", "/tmp", "/home", "/data")))
+        self.host.setCompleter(QCompleter((
+            "10.0.0.1", "172.16.0.1", "172.31.0.1", "192.168.0.1", "127.0.0.1"
+        )))
         ssh_layout = QHBoxLayout(group0)
         ssh_layout.addWidget(QLabel("<b>User"))
         ssh_layout.addWidget(self.user)
@@ -302,9 +305,12 @@ class MainWindow(QMainWindow):
                 ".sh"),
             "Bash Script Executable for Linux .sh (*.sh)")[0]
         log.debug(script)
-        if file_path:
-            with open(file_path, "w") as file_to_write:
-                file_to_write.write("#!/usr/bin/env bash \n" + script.strip())
+        info = r'echo -e "\x1b[29;5;7m   Connecting to {} as {}...   \x1b[0m"'
+        info = info.format(self.host.text(), self.user.text().upper()) + "\n"
+        header = "#!/usr/bin/env bash\n# -*- coding: utf-8 -*-\n\n\n" + info
+        if file_path and os.path.isdir(os.path.dirname(file_path)):
+            with open(file_path, "w", encoding="utf-8") as file_to_write:
+                file_to_write.write(header + script.strip() + "\n")
             os.chmod(file_path, 0o775)
 
     def center(self):
@@ -325,7 +331,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         """Ask to Quit."""
         the_conditional_is_true = QMessageBox.question(
-            self, __doc__.title(), 'Quit ?.', QMessageBox.Yes | QMessageBox.No,
+            self, __doc__.title(), 'Quit?.', QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No) == QMessageBox.Yes
         event.accept() if the_conditional_is_true else event.ignore()
 
@@ -349,7 +355,7 @@ def main():
                     return fn(*args)
                 levelno = new_args[1].levelno
                 if levelno >= 50:
-                    color = '\x1b[31m'  # red
+                    color = '\x1b[31;5;7m\n '  # blinking red with black
                 elif levelno >= 40:
                     color = '\x1b[31m'  # red
                 elif levelno >= 30:
@@ -361,7 +367,7 @@ def main():
                 else:
                     color = '\x1b[0m'  # normal
                 try:
-                    new_args[1].msg = color + str(new_args[1].msg) + '\x1b[0m'
+                    new_args[1].msg = color + str(new_args[1].msg) + ' \x1b[0m'
                 except Exception as reason:
                     print(reason)  # Do not use log here.
                 return fn(*new_args)
@@ -378,6 +384,7 @@ def main():
         libc.prctl(15, byref(buff), 0, 0, 0)
     except Exception as reason:
         log.warning(reason)
+    log.info(__doc__ + __version__)
     signal.signal(signal.SIGINT, signal.SIG_DFL)  # CTRL+C work to quit app
     application = QApplication(sys.argv)
     application.setApplicationName(__doc__.strip().lower())
@@ -399,6 +406,9 @@ def main():
             return sys.exit(0)
     mainwindow = MainWindow()
     mainwindow.show()
+    log.info('Total Maximum RAM Memory used: ~{} MegaBytes.'.format(int(
+        resource.getrusage(resource.RUSAGE_SELF).ru_maxrss *
+        resource.getpagesize() / 1024 / 1024 if resource else 0)))
     sys.exit(application.exec_())
 
 
