@@ -5,7 +5,7 @@
 # metadata
 """OctopuSSH."""
 __package__ = "octopussh"
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 __description__ = __doc__
 __license__ = ' GPLv3+ LGPLv3+ '
 __author__ = ' juancarlos '

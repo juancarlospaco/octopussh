@@ -50,7 +50,6 @@ setup(
 
 
     scripts=['octopussh'],
-    entry_points = {'console_scripts': ['octopussh = octopussh']},
 
 
     keywords=['SSH', 'Bash', 'SysAdmin', 'DevOps', 'Administration', 'Server'],
