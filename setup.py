@@ -1,7 +1,29 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# To Upload to PyPI by executing:  python3 setup.py sdist upload -r pypi
+#
+# To generate DEB package from Python Package:
+# sudo pip3 install stdeb
+# python3 setup.py --verbose --command-packages=stdeb.command bdist_deb
+#
+#
+# To generate RPM package from Python Package:
+# sudo apt-get install rpm
+# python3 setup.py bdist_rpm --verbose --fix-python --binary-only
+#
+#
+# To generate EXE MS Windows from Python Package:
+# python3 setup.py bdist_wininst --verbose
+#
+#
+# To generate PKGBUILD ArchLinux from Python Package:
+# sudo pip3 install git+https://github.com/bluepeppers/pip2arch.git
+# pip2arch PackageNameHere
+#
+#
+# To Upload to PyPI by executing:
+# python3 setup.py register
+# python3 setup.py bdist_egg sdist --formats=bztar,gztar,zip upload --sign
 
 
 """Setup.py for Python, as Generic as possible."""
@@ -19,7 +41,7 @@ def find_this(search, filename=MODULE_PATH):
     """Take a string and a filename path string and return the found value."""
     if not search:
         return
-    for line in open(str(filename)).readlines():
+    for line in open(str(filename), encoding="utf-8").readlines():
         if search.lower() in line.lower():
             line = line.split("=")[1].strip()
             if "'" in line or '"' in line or '"""' in line:

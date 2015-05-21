@@ -5,7 +5,7 @@
 # metadata
 """OctopuSSH."""
 __package__ = "octopussh"
-__version__ = "1.0.4"
+__version__ = "1.0.5"
 __description__ = __doc__
 __license__ = ' GPLv3+ LGPLv3+ '
 __author__ = ' juancarlos '
@@ -17,8 +17,10 @@ __source__ = ('https://raw.githubusercontent.com/juancarlospaco/'
 
 
 # imports
+import curses
 import logging as log
 import os
+import resource
 import signal
 import sys
 import time
@@ -31,7 +33,6 @@ from socket import getfqdn, gethostbyname
 from subprocess import call
 from urllib import request
 from webbrowser import open_new_tab
-import resource
 
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QIcon
@@ -51,6 +52,21 @@ HELP = """<h3>OctopuSSH</h3><b>App for SSH !</b><br>Version {}, licence {}.<ul>
 DEV: <a href=https://github.com/juancarlospaco>juancarlospaco</a><br>
 QA: <a href=https://github.com/rokarc>rokarc</a>
 """.format(__version__, __license__)
+DESKTOP_FILE = """
+[Desktop Entry]
+Comment={description}, powered by OctopuSSH.
+Exec={command} || read -n1 -p 'SSH command failed!. Press any key to exit...'
+GenericName=ssh_to_{name}
+Icon=Terminal
+Name=ssh_to_{name}
+StartupNotify=false
+Terminal=true
+Type=Application
+X-DBUS-ServiceName=ssh_to_{name}
+X-DBUS-StartupType=none
+X-KDE-StartupNotify=false
+X-KDE-SubstituteUID=false
+"""
 
 
 ###############################################################################
@@ -298,20 +314,39 @@ class MainWindow(QMainWindow):
             "{}@{}".format(self.user.text(), self.host.text())))
         if bool(len(self.path.text())):
             script += ":{}".format(self.path.text())
+        default_filename = os.path.join(
+            os.path.expanduser("~"), "ssh_to_" +
+            str(self.host.text()).strip().lower().replace(".", "_") + ".sh")
+        extensions = ("Bash Script Executable for Linux .sh (*.sh);;"
+                      "Desktop Launcher file for Linux (*.desktop)")
         file_path = QFileDialog.getSaveFileName(
-            self, __doc__.title() + " - Save SSH Script ! ", os.path.join(
-                os.path.expanduser("~"), "ssh_to_" +
-                str(self.host.text()).strip().lower().replace(".", "_") +
-                ".sh"),
-            "Bash Script Executable for Linux .sh (*.sh)")[0]
+            self, __doc__.title() + " - Save SSH Script ! ",
+            default_filename, extensions)[0]
         log.debug(script)
+        if file_path and os.path.isdir(os.path.dirname(file_path)):
+            if file_path.lower().endswith(".desktop"):
+                self.save_as_desktop(file_path, script)
+            else:
+                self.save_as_sh(file_path, script)
+
+    def save_as_sh(self, file_path, script):
+        """Save as SH bash script."""
         info = r'echo -e "\x1b[29;5;7m   Connecting to {} as {}...   \x1b[0m"'
         info = info.format(self.host.text(), self.user.text().upper()) + "\n"
         header = "#!/usr/bin/env bash\n# -*- coding: utf-8 -*-\n\n\n" + info
-        if file_path and os.path.isdir(os.path.dirname(file_path)):
-            with open(file_path, "w", encoding="utf-8") as file_to_write:
-                file_to_write.write(header + script.strip() + "\n")
-            os.chmod(file_path, 0o775)
+        with open(file_path, "w", encoding="utf-8") as file_to_write:
+            file_to_write.write(header + script.strip() + "\n")
+        os.chmod(file_path, 0o775)
+
+    def save_as_desktop(self, file_path, script):
+        """Save as Desktop Launcher."""
+        desc = "Connect to {} as {} using SSH".format(self.host.text().title(),
+                                                      self.user.text().title())
+        launcher = DESKTOP_FILE.format(
+            name=self.host.text(), command=script.strip(), description=desc)
+        with open(file_path, "w", encoding="utf-8") as file_to_write:
+            file_to_write.write(launcher)
+        os.chmod(file_path, 0o775)
 
     def center(self):
         """Center Window on the Current Screen,with Multi-Monitor support."""
@@ -356,6 +391,9 @@ def main():
                 levelno = new_args[1].levelno
                 if levelno >= 50:
                     color = '\x1b[31;5;7m\n '  # blinking red with black
+                    curses.initscr()  # flash the screen
+                    curses.flash()
+                    curses.endwin()
                 elif levelno >= 40:
                     color = '\x1b[31m'  # red
                 elif levelno >= 30:
