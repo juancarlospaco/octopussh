@@ -23,7 +23,9 @@ Install permanently on the system:
 
 ::
 
-    sudo apt-get install sshpass python3-pyqt5  # OR  sudo yum install python3-qt5 sshpass  OR  sudo pacman -S python-pyqt5 sshpass
+    sudo apt-get install sshpass python3-pyqt5  
+    # sudo yum install python3-qt5 sshpass  
+    # sudo pacman -Syu python-pyqt5 sshpass
     sudo pip3 install octopussh
     octopussh
 
