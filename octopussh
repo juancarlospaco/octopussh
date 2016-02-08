@@ -4,54 +4,41 @@
 
 # metadata
 """OctopuSSH."""
-__package__ = "octopussh"
-__version__ = "1.0.5"
-__description__ = __doc__
+__version__ = "1.5.0"
 __license__ = ' GPLv3+ LGPLv3+ '
 __author__ = ' juancarlos '
 __email__ = ' juancarlospaco@gmail.com '
-__url__ = 'https://github.com/juancarlospaco/octopussh#octopussh'
-__docformat__ = 'html'
+__url__ = 'https://github.com/juancarlospaco/octopussh'
 __source__ = ('https://raw.githubusercontent.com/juancarlospaco/'
               'octopussh/master/octopussh')
 
 
 # imports
-import curses
 import logging as log
 import os
-import resource
 import signal
 import sys
 import time
 from copy import copy
 from ctypes import byref, cdll, create_string_buffer
 from datetime import datetime
-from getopt import getopt
+
 from getpass import getuser
 from socket import getfqdn, gethostbyname
 from subprocess import call
 from urllib import request
 from webbrowser import open_new_tab
+from tempfile import gettempdir
 
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QIcon
-from PyQt5.QtNetwork import (QNetworkAccessManager, QNetworkProxyFactory,
-                             QNetworkRequest)
+
 from PyQt5.QtWidgets import (QApplication, QCheckBox, QCompleter,
-                             QDialogButtonBox, QFileDialog, QFontDialog,
-                             QGroupBox, QHBoxLayout, QLabel, QLineEdit,
-                             QMainWindow, QMessageBox, QProgressDialog,
-                             QShortcut, QVBoxLayout, QWidget)
+                             QDialogButtonBox, QFileDialog, QGroupBox,
+                             QHBoxLayout, QLabel, QLineEdit, QMainWindow,
+                             QMessageBox, QShortcut, QVBoxLayout, QWidget)
 
 
-HELP = """<h3>OctopuSSH</h3><b>App for SSH !</b><br>Version {}, licence {}.<ul>
-<li>200 lines of Python 3 + Qt 5, single-file, No Dependencies.
-<li>Inspired by Dead <a href=http://kssh.sourceforge.net>KSSH</a> from KDE3 Qt3
-<li>Generates Executable Bash scripts for Automated SSH.</ul>
-DEV: <a href=https://github.com/juancarlospaco>juancarlospaco</a><br>
-QA: <a href=https://github.com/rokarc>rokarc</a>
-""".format(__version__, __license__)
 DESKTOP_FILE = """
 [Desktop Entry]
 Comment={description}, powered by OctopuSSH.
@@ -63,111 +50,16 @@ StartupNotify=false
 Terminal=true
 Type=Application
 X-DBUS-ServiceName=ssh_to_{name}
-X-DBUS-StartupType=none
 X-KDE-StartupNotify=false
-X-KDE-SubstituteUID=false
 """
 
 
-###############################################################################
-
-
-class Downloader(QProgressDialog):
-
-    """Downloader Dialog with complete informations and progress bar."""
-
-    def __init__(self, parent=None):
-        """Init class."""
-        super(Downloader, self).__init__(parent)
-        self.setWindowTitle(__doc__)
-        if not os.path.isfile(__file__) or not __source__:
-            return
-        if not os.access(__file__, os.W_OK):
-            error_msg = ("Destination file permission denied (not Writable)! "
-                         "Try again to Update but as root or administrator.")
-            log.critical(error_msg)
-            QMessageBox.warning(self, __doc__.title(), error_msg)
-            return
-        self._time, self._date = time.time(), datetime.now().isoformat()[:-7]
-        self._url, self._dst = __source__, __file__
-        log.debug("Downloading from {} to {}.".format(self._url, self._dst))
-        if not self._url.lower().startswith("https:"):
-            log.warning("Unsecure Download over plain text without SSL.")
-        self.template = """<h3>Downloading</h3><hr><table>
-        <tr><td><b>From:</b></td>      <td>{}</td>
-        <tr><td><b>To:  </b></td>      <td>{}</td> <tr>
-        <tr><td><b>Started:</b></td>   <td>{}</td>
-        <tr><td><b>Actual:</b></td>    <td>{}</td> <tr>
-        <tr><td><b>Elapsed:</b></td>   <td>{}</td>
-        <tr><td><b>Remaining:</b></td> <td>{}</td> <tr>
-        <tr><td><b>Received:</b></td>  <td>{} MegaBytes</td>
-        <tr><td><b>Total:</b></td>     <td>{} MegaBytes</td> <tr>
-        <tr><td><b>Speed:</b></td>     <td>{}</td>
-        <tr><td><b>Percent:</b></td>     <td>{}%</td></table><hr>"""
-        self.manager = QNetworkAccessManager(self)
-        self.manager.finished.connect(self.save_downloaded_data)
-        self.manager.sslErrors.connect(self.download_failed)
-        self.progreso = self.manager.get(QNetworkRequest(QUrl(self._url)))
-        self.progreso.downloadProgress.connect(self.update_download_progress)
-        self.show()
-        self.exec_()
-
-    def save_downloaded_data(self, data):
-        """Save all downloaded data to the disk and quit."""
-        log.debug("Download done. Update Done.")
-        with open(os.path.join(self._dst), "wb") as output_file:
-            output_file.write(data.readAll())
-        data.close()
-        QMessageBox.information(self, __doc__.title(),
-                                "<b>You got the latest version of this App!")
-        del self.manager, data
-        return self.close()
-
-    def download_failed(self, download_error):
-        """Handle a download error, probable SSL errors."""
-        log.error(download_error)
-        QMessageBox.warning(self, __doc__.title(), str(download_error))
-
-    def seconds_time_to_human_string(self, time_on_seconds=0):
-        """Calculate time, with precision from seconds to days."""
-        minutes, seconds = divmod(int(time_on_seconds), 60)
-        hours, minutes = divmod(minutes, 60)
-        days, hours = divmod(hours, 24)
-        human_time_string = ""
-        if days:
-            human_time_string += "%02d Days " % days
-        if hours:
-            human_time_string += "%02d Hours " % hours
-        if minutes:
-            human_time_string += "%02d Minutes " % minutes
-        human_time_string += "%02d Seconds" % seconds
-        return human_time_string
-
-    def update_download_progress(self, bytesReceived, bytesTotal):
-        """Calculate statistics and update the UI with them."""
-        downloaded_MB = round(((bytesReceived / 1024) / 1024), 2)
-        total_data_MB = round(((bytesTotal / 1024) / 1024), 2)
-        downloaded_KB, total_data_KB = bytesReceived / 1024, bytesTotal / 1024
-        # Calculate download speed values, with precision from Kb/s to Gb/s
-        elapsed = time.clock()
-        if elapsed > 0:
-            speed = round((downloaded_KB / elapsed), 2)
-            if speed > 1024000:  # Gigabyte speeds
-                download_speed = "{} GigaByte/Second".format(speed // 1024000)
-            if speed > 1024:  # MegaByte speeds
-                download_speed = "{} MegaBytes/Second".format(speed // 1024)
-            else:  # KiloByte speeds
-                download_speed = "{} KiloBytes/Second".format(int(speed))
-        if speed > 0:
-            missing = abs((total_data_KB - downloaded_KB) // speed)
-        percentage = int(100.0 * bytesReceived // bytesTotal)
-        self.setLabelText(self.template.format(
-            self._url.lower()[:99], self._dst.lower()[:99],
-            self._date, datetime.now().isoformat()[:-7],
-            self.seconds_time_to_human_string(time.time() - self._time),
-            self.seconds_time_to_human_string(missing),
-            downloaded_MB, total_data_MB, download_speed, percentage))
-        self.setValue(percentage)
+SH_FILE = r"""#!/usr/bin/env bash
+# -*- coding: utf-8 -*-
+clear
+echo -e '\x1b[29;5;7m    Connecting via SSH to {name} as {user}...    \x1b[0m'
+{command} || read -n1 -p ' SSH command failed!. Press any key to exit...'
+"""
 
 
 ###############################################################################
@@ -180,7 +72,6 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         """Init main class."""
         super(MainWindow, self).__init__()
-        # self.statusBar().showMessage(__doc__.strip().capitalize())
         self.setWindowTitle(__doc__.strip().capitalize())
         self.setMinimumSize(700, 240)
         self.setMaximumSize(800, 400)
@@ -195,51 +86,28 @@ class MainWindow(QMainWindow):
         windowMenu.addAction("FullScreen", lambda: self.showFullScreen())
         windowMenu.addAction("Restore", lambda: self.showNormal())
         windowMenu.addAction("Center", lambda: self.center())
-        windowMenu.addAction("Top-Left", lambda: self.move(0, 0))
         windowMenu.addAction("To Mouse", lambda: self.move_to_mouse_position())
         windowMenu.addSeparator()
-        windowMenu.addAction(
-            "Increase size", lambda:
-            self.resize(self.size().width() * 1.4, self.size().height() * 1.4))
-        windowMenu.addAction("Decrease size", lambda: self.resize(
-            self.size().width() // 1.4, self.size().height() // 1.4))
         windowMenu.addAction("Minimum size", lambda:
                              self.resize(self.minimumSize()))
         windowMenu.addAction("Maximum size", lambda:
                              self.resize(self.maximumSize()))
-        windowMenu.addAction("Horizontal Wide", lambda: self.resize(
-            self.maximumSize().width(), self.minimumSize().height()))
-        windowMenu.addAction("Vertical Tall", lambda: self.resize(
-            self.minimumSize().width(), self.maximumSize().height()))
         windowMenu.addSeparator()
-        windowMenu.addAction("Disable Resize", lambda:
-                             self.setFixedSize(self.size()))
-        windowMenu.addAction("Set Interface Font...", lambda:
-                             self.setFont(QFontDialog.getFont()[0]))
         helpMenu = self.menuBar().addMenu("&Help")
         helpMenu.addAction("About Qt 5", lambda: QMessageBox.aboutQt(self))
-        helpMenu.addAction("About Python 3",
-                           lambda: open_new_tab('https://www.python.org'))
-        helpMenu.addAction("About" + __doc__,
-                           lambda: QMessageBox.about(self, __doc__, HELP))
+        helpMenu.addAction("About Python", about_python)
+        helpMenu.addAction("About" + __doc__, about_self)
         helpMenu.addSeparator()
-        helpMenu.addAction(
-            "Keyboard Shortcut",
-            lambda: QMessageBox.information(self, __doc__, "Quit = CTRL+Q"))
-        helpMenu.addAction("View Source Code",
-                           lambda: call('xdg-open ' + __file__, shell=True))
-        helpMenu.addAction("View GitHub Repo", lambda: open_new_tab(__url__))
-        helpMenu.addAction("Report Bugs", lambda: open_new_tab(
-            'https://github.com/juancarlospaco/octopussh/issues?state=open'))
-        helpMenu.addAction("Check Updates", lambda: Downloader(self))
+        helpMenu.addAction("View Source Code", view_code)
+        helpMenu.addAction("Report Bugs", report_bug)
+        helpMenu.addAction("Check Updates", lambda: QMessageBox.information(
+            self, __doc__, check_for_updates()))
         container = QWidget()
         container_layout = QVBoxLayout(container)
         self.setCentralWidget(container)
-        # widgets
         group0, group1 = QGroupBox("SSH"), QGroupBox("Options")
         container_layout.addWidget(group0)
         container_layout.addWidget(group1)
-        # ssh info
         self.user, self.pswd = QLineEdit(getuser().lower()), QLineEdit()
         self.host, self.path = QLineEdit(), QLineEdit()
         self.user.setPlaceholderText("root")
@@ -264,7 +132,6 @@ class MainWindow(QMainWindow):
         ssh_layout.addWidget(self.pswd)
         ssh_layout.addWidget(QLabel("Folder"))
         ssh_layout.addWidget(self.path)
-        # options
         self.chrt, self.ionice = QCheckBox("Low CPU"), QCheckBox("Low HDD")
         self.verb, self.comprs = QCheckBox("Verbose"), QCheckBox("Compression")
         self.ign = QCheckBox("Ignore know_hosts")
@@ -311,9 +178,9 @@ class MainWindow(QMainWindow):
             "-C" if self.comprs.isChecked() else "",
             "-g -X" if self.tun.isChecked() else "",
             "-o StrictHostKeychecking=no" if self.ign.isChecked() else "",
-            "{}@{}".format(self.user.text(), self.host.text())))
+            "{0}@{1}".format(self.user.text(), self.host.text())))
         if bool(len(self.path.text())):
-            script += ":{}".format(self.path.text())
+            script += ":{0}".format(self.path.text())
         default_filename = os.path.join(
             os.path.expanduser("~"), "ssh_to_" +
             str(self.host.text()).strip().lower().replace(".", "_") + ".sh")
@@ -331,11 +198,9 @@ class MainWindow(QMainWindow):
 
     def save_as_sh(self, file_path, script):
         """Save as SH bash script."""
-        info = r'echo -e "\x1b[29;5;7m   Connecting to {} as {}...   \x1b[0m"'
-        info = info.format(self.host.text(), self.user.text().upper()) + "\n"
-        header = "#!/usr/bin/env bash\n# -*- coding: utf-8 -*-\n\n\n" + info
-        with open(file_path, "w", encoding="utf-8") as file_to_write:
-            file_to_write.write(header + script.strip() + "\n")
+        with open(file_path, "w", encoding="utf-8") as sh_file:
+            sh_file.write(SH_FILE.format(name=self.host.text(),
+                command=script, user=self.user.text().upper(),))
         os.chmod(file_path, 0o775)
 
     def save_as_desktop(self, file_path, script):
@@ -363,20 +228,10 @@ class MainWindow(QMainWindow):
         window_geometry.moveCenter(QApplication.desktop().cursor().pos())
         self.move(window_geometry.topLeft())
 
-    def closeEvent(self, event):
-        """Ask to Quit."""
-        the_conditional_is_true = QMessageBox.question(
-            self, __doc__.title(), 'Quit?.', QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.No) == QMessageBox.Yes
-        event.accept() if the_conditional_is_true else event.ignore()
 
 
-###############################################################################
-
-
-def main():
-    """Main Loop."""
-    APPNAME = str(__package__ or __doc__)[:99].lower().strip().replace(" ", "")
+def make_logger(name=str(os.getpid())):
+    """Build and return a Logging Logger."""
     if not sys.platform.startswith("win") and sys.stderr.isatty():
         def add_color_emit_ansi(fn):
             """Add methods we need to the class."""
@@ -391,9 +246,6 @@ def main():
                 levelno = new_args[1].levelno
                 if levelno >= 50:
                     color = '\x1b[31;5;7m\n '  # blinking red with black
-                    curses.initscr()  # flash the screen
-                    curses.flash()
-                    curses.endwin()
                 elif levelno >= 40:
                     color = '\x1b[31m'  # red
                 elif levelno >= 30:
@@ -410,43 +262,73 @@ def main():
                     print(reason)  # Do not use log here.
                 return fn(*new_args)
             return new
-        # all non-Windows platforms support ANSI Colors so we use them
         log.StreamHandler.emit = add_color_emit_ansi(log.StreamHandler.emit)
-    log.basicConfig(level=-1, format="%(levelname)s:%(asctime)s %(message)s")
+    log_file = os.path.join(gettempdir(), str(name).lower().strip() + ".log")
+    log.basicConfig(level=-1, filemode="w", filename=log_file)
     log.getLogger().addHandler(log.StreamHandler(sys.stderr))
+    adrs = "/dev/log" if sys.platform.startswith("lin") else "/var/run/syslog"
     try:
-        os.nice(19)  # smooth cpu priority
-        libc = cdll.LoadLibrary('libc.so.6')  # set process name
-        buff = create_string_buffer(len(APPNAME) + 1)
-        buff.value = bytes(APPNAME.encode("utf-8"))
-        libc.prctl(15, byref(buff), 0, 0, 0)
-    except Exception as reason:
-        log.warning(reason)
+        handler = log.handlers.SysLogHandler(address=adrs)
+    except Exception:
+        log.debug("Unix SysLog Server not found, ignored Logging to SysLog.")
+    else:
+        log.getLogger().addHandler(handler)
+    log.debug("Logger created with Log file at: {0}.".format(log_file))
+    return log
+
+
+def check_for_updates():
+    """Method to check for updates from Git repo versus this version."""
+    try:
+        last_version = str(request.urlopen(__source__).read().decode("utf8"))
+        this_version = str(open(__file__).read())
+    except Exception:
+        log_exception()
+    else:
+        if this_version != last_version:
+            msg = "Theres a new Version!, update the App from: " + __source__
+            log.warning(msg)
+        else:
+            msg = "No new updates!, You have the latest version of this app."
+            log.info(msg)
+        return msg
+
+
+def about_python():
+    """Open Python official homepage."""
+    return open_new_tab('https://python.org')
+
+
+def about_self():
+    """Open this App homepage."""
+    return open_new_tab(__url__)
+
+
+def view_code():
+    """Open this App local Python source code."""
+    return open_new_tab(__file__)
+
+
+def report_bug():
+    """Open this App Bug Tracker."""
+    return open_new_tab(__url__ + "/issues/new")
+
+
+###############################################################################
+
+
+def main():
+    """Main Loop."""
+    make_logger("octopussh")
     log.info(__doc__ + __version__)
     signal.signal(signal.SIGINT, signal.SIG_DFL)  # CTRL+C work to quit app
     application = QApplication(sys.argv)
-    application.setApplicationName(__doc__.strip().lower())
-    application.setOrganizationName(__doc__.strip().lower())
-    application.setOrganizationDomain(__doc__.strip())
+    application.setApplicationName("octopussh")
+    application.setOrganizationName("octopussh")
+    application.setOrganizationDomain("octopussh")
     application.setWindowIcon(QIcon.fromTheme("preferences-system"))
-    try:
-        opts, args = getopt(sys.argv[1:], 'hv', ('version', 'help'))
-    except:
-        pass
-    for o, v in opts:
-        if o in ('-h', '--help'):
-            print(''' Usage:
-                  -h, --help        Show help informations and exit.
-                  -v, --version     Show version information and exit.''')
-            return sys.exit(0)
-        elif o in ('-v', '--version'):
-            print(__version__)
-            return sys.exit(0)
     mainwindow = MainWindow()
     mainwindow.show()
-    log.info('Total Maximum RAM Memory used: ~{} MegaBytes.'.format(int(
-        resource.getrusage(resource.RUSAGE_SELF).ru_maxrss *
-        resource.getpagesize() / 1024 / 1024 if resource else 0)))
     sys.exit(application.exec_())
 
 
